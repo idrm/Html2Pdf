@@ -1,0 +1,1 @@
+﻿This software is license under AGPL.
