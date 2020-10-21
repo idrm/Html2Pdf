@@ -45,7 +45,7 @@ namespace Html2Pdf.Controllers
 
             if (!_clientKeys.ContainsKey(client) || _clientKeys[client] != key)
             {
-                return new ForbidResult();
+                return new NotFoundResult();
             }
 
             var formData = HttpContext.Request.Form;
