@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
-	<AspNetCoreModuleName>AspNetCoreModuleV2</AspNetCoreModuleName>
+    <!--<AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>-->
+	<!--<RuntimeFrameworkName>Microsoft.AspNetCore.App</RuntimeFrameworkName>
+	<AspNetCoreModuleName>AspNetCoreModuleV2</AspNetCoreModuleName>-->
   </PropertyGroup>
 
   <ItemGroup>
