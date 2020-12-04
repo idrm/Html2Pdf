@@ -38,10 +38,13 @@ namespace Html2Pdf.Controllers
         {
             StringValues clientParam;
             StringValues keyParam;
+            StringValues orientationParam;
             var hasClient = Request.Query.TryGetValue("client", out clientParam);
             var hasKey = Request.Query.TryGetValue("key", out keyParam);
+            var hasOrientation = Request.Query.TryGetValue("orientation", out orientationParam);
             var client = hasClient && clientParam.Count > 0 ? clientParam[0] : "";
             var key = hasKey && keyParam.Count > 0 ? keyParam[0] : "";
+            var orientation = hasOrientation && orientationParam.Count > 0 ? orientationParam[0] : "portrait";
 
             if (!_clientKeys.ContainsKey(client) || _clientKeys[client] != key)
             {
@@ -74,8 +77,11 @@ namespace Html2Pdf.Controllers
                         var writer = new PdfWriter(pdfDest);
                         var pdfDoc = new PdfDocument(writer);
                         pdfDoc.SetTagged();
-                        pdfDoc.SetDefaultPageSize(PageSize.A4);
-                    
+                        if (orientation == "landscape")
+                            pdfDoc.SetDefaultPageSize(PageSize.A4.Rotate());
+                        else
+                            pdfDoc.SetDefaultPageSize(PageSize.A4);
+
                         var converterProperties = new ConverterProperties();
                         
                         var fp = new DefaultFontProvider();
