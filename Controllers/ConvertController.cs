@@ -38,15 +38,15 @@ namespace Html2Pdf.Controllers
         {
             StringValues clientParam;
             StringValues keyParam;
-            //StringValues orientationParam;
+            StringValues orientationParam;
             var hasClient = Request.Query.TryGetValue("client", out clientParam);
             var hasKey = Request.Query.TryGetValue("key", out keyParam);
-            //var hasOrientation = Request.Query.TryGetValue("orientation", out orientationParam);
+            var hasOrientation = Request.Query.TryGetValue("orientation", out orientationParam);
             var client = hasClient && clientParam.Count > 0 ? clientParam[0] : "";
             var key = hasKey && keyParam.Count > 0 ? keyParam[0] : "";
-            //var orientation = hasOrientation && orientationParam.Count > 0 ? orientationParam[0] : "portrait";
+            var orientation = hasOrientation && orientationParam.Count > 0 ? orientationParam[0] : "portrait";
 
-            var orientation = "portrait";
+            //var orientation = "portrait";
 
             if (!_clientKeys.ContainsKey(client) || _clientKeys[client] != key)
             {
