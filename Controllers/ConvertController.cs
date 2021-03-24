@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Html2Pdf.Controllers
@@ -39,14 +40,15 @@ namespace Html2Pdf.Controllers
             StringValues clientParam;
             StringValues keyParam;
             StringValues orientationParam;
+            StringValues pageSizeParam;
             var hasClient = Request.Query.TryGetValue("client", out clientParam);
             var hasKey = Request.Query.TryGetValue("key", out keyParam);
             var hasOrientation = Request.Query.TryGetValue("orientation", out orientationParam);
+            var hasPageSize = Request.Query.TryGetValue("pageSize", out pageSizeParam);
             var client = hasClient && clientParam.Count > 0 ? clientParam[0] : "";
             var key = hasKey && keyParam.Count > 0 ? keyParam[0] : "";
             var orientation = hasOrientation && orientationParam.Count > 0 ? orientationParam[0] : "portrait";
-
-            //var orientation = "portrait";
+            var pageSize = hasPageSize && pageSizeParam.Count > 0 ? pageSizeParam[0] : "A4";
 
             if (!_clientKeys.ContainsKey(client) || _clientKeys[client] != key)
             {
@@ -79,10 +81,20 @@ namespace Html2Pdf.Controllers
                         var writer = new PdfWriter(pdfDest);
                         var pdfDoc = new PdfDocument(writer);
                         pdfDoc.SetTagged();
+
+                        PageSize ps = PageSize.A4;
+
+                        if (pageSize == "A3")
+                        {
+                            ps = PageSize.A3;
+                        }
+
                         if (orientation == "landscape")
-                            pdfDoc.SetDefaultPageSize(PageSize.A4.Rotate());
-                        else
-                            pdfDoc.SetDefaultPageSize(PageSize.A4);
+                        {
+                            ps = ps.Rotate();
+                        }
+
+                        pdfDoc.SetDefaultPageSize(ps);
 
                         var converterProperties = new ConverterProperties();
                         
@@ -99,14 +111,14 @@ namespace Html2Pdf.Controllers
                 }
                 catch (Exception ex)
                 {
-                    response = Ok(new { error = ex.Message, stackTrace = ex.StackTrace });
+                    response = StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
                 }
 
                 Directory.Delete(tempFolder, true);
 
             } else
             {
-                response = Ok(new { files = files.Select(f => new { name = f.Name, fileName = f.FileName }) });
+                response = StatusCode((int)HttpStatusCode.BadRequest, new { error = "No doc file provided" });
             }
 
             return response;
