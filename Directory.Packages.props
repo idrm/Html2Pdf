@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Pin transitively-referenced packages to the versions below, so a vulnerable
+         transitive dependency can be forced up without a direct PackageReference. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- pdfHTML stays at the version this app has run since 2021: pdf-engine's templates are laid
+         out against it, and a newer iText renders them differently. -->
+    <PackageVersion Include="itext7.pdfhtml" Version="3.0.1" />
+    <!-- itext7 7.1.12 reaches Newtonsoft.Json 9.0.1 (GHSA-5crp-9r3c-p9vr) through
+         Microsoft.Extensions.DependencyModel 1.1.0. Lifted here; iText renders nothing with it. -->
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+</Project>
