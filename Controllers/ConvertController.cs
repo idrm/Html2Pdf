@@ -55,7 +55,7 @@ namespace Html2Pdf.Controllers
                 return new NotFoundResult();
             }
 
-            var formData = HttpContext.Request.Form;
+            var formData = await HttpContext.Request.ReadFormAsync();
             var files = formData.Files;
             var docFile = files.Where(f => f.FileName == "doc.html").FirstOrDefault();
 
@@ -69,7 +69,8 @@ namespace Html2Pdf.Controllers
                 foreach (var file in files)
                 {
                     if (file.FileName != "doc.html")
-                        await System.IO.File.WriteAllBytesAsync($"{tempFolder}/{file.FileName}", ReadAllBytes(file.OpenReadStream()));
+                        // GetFileName keeps a part named "../x" inside the temp folder.
+                        await System.IO.File.WriteAllBytesAsync($"{tempFolder}/{System.IO.Path.GetFileName(file.FileName)}", ReadAllBytes(file.OpenReadStream()));
                 }
 
                 try
