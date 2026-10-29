@@ -1,0 +1,74 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# id-token: write lets azure/login exchange a GitHub OIDC token for an Azure one, so neither the
+# registry nor the site needs a stored credential. The identity is federated to this repo's master
+# branch only, and holds AcrPush on the registry and Website Contributor on the site.
+permissions:
+  contents: read
+  id-token: write
+
+# The repo and its Actions logs are public, so the Azure names come from secrets, which are masked.
+env:
+  IMAGE_NAME: html2pdf
+  REGISTRY_NAME: ${{ secrets.REGISTRY_NAME }}
+  AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AZURE_WEBAPP: ${{ secrets.AZURE_WEBAPP }}
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to the registry
+        run: az acr login -n "$REGISTRY_NAME"
+
+      # The commit tag is what the site is pointed at below, which makes a deploy deterministic
+      # and a rollback possible (point the site back at an older sha). :latest is kept for
+      # anything that reads it, but nothing deploys from it.
+      - name: Build and push the image
+        run: |
+          image="$REGISTRY_NAME.azurecr.io/$IMAGE_NAME"
+          docker build --build-arg BUILD_SHA=${{ github.sha }} -t "$image:${{ github.sha }}" -t "$image:latest" .
+          docker push "$image:${{ github.sha }}"
+          docker push "$image:latest"
+
+      - name: Point the site at this build
+        run: |
+          az webapp config container set -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_WEBAPP" \
+            -i "$REGISTRY_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}" -o none
+          az webapp restart -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_WEBAPP"
+
+      # Poll for the commit, not for a 200: the previous container answers 200 just as happily,
+      # so only the commit tells a real deploy from a no-op.
+      - name: Verify the deployed build
+        run: |
+          for attempt in $(seq 1 40); do
+            got=$(curl -fsS --max-time 10 "https://$AZURE_WEBAPP.azurewebsites.net/buildz" \
+              | jq -r '.build // empty' 2>/dev/null || true)
+            if [ "$got" = "${{ github.sha }}" ]; then
+              echo "Deployed ${{ github.sha }} after $attempt attempts."
+              exit 0
+            fi
+            echo "attempt $attempt: serving '${got:-nothing}'"
+            sleep 15
+          done
+          echo "::error::The site never reported ${{ github.sha }}. The old image is still serving."
+          exit 1
